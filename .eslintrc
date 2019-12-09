@@ -1,0 +1,13 @@
+{
+  "extends": ["plugin:@typescript-eslint/recommended", "prettier"],
+  "parserOptions": {
+    "ecmaFeatures": {
+      "modules": true
+    }
+  },
+  "rules": {
+    "comma-dangle": ["error", "always-multiline"],
+    "quotes": ["error", "single"],
+    "max-len": ["error", 120]
+  }
+}
