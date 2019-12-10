@@ -1,147 +1,13 @@
 import * as express from 'express';
-
-import api from '../util/api';
+import * as octoApi from '../lib/octoApi';
 
 const router = express.Router();
 
-type PrinterState = {
-  state: string;
-  bedTemp: number;
-  bedTempTarget: number;
-  printerTemp: number;
-  printerTempTarget: number;
-};
-
-type JobState = {
-  durationCurrent: number;
-  durationRemaining: number;
-  durationPercent: number;
-  fileName: string;
-  filamentLength: number;
-  filamentVolume: number;
-};
-
-type File = {
-  fileName: string;
-  fileUrl: string;
-  fileSize: number;
-  durationEstimate: number;
-};
-
-type FileStat = {
-  countFailure: number;
-  countSuccess: number;
-  lastPrint: string;
-  lastPrintSucceeded: boolean;
-};
-
-type FileDetail = {
-  fileName: string;
-  fileSize: number;
-  durationEstimate: number;
-  fileUrl: string;
-  stats: FileStat;
-};
-
-type Event = {
-  error?: string;
-  file?: string;
-  success: boolean;
-};
-
-const fetchPrinterState = async (): Promise<PrinterState> => {
-  try {
-    const { data } = await api.get('/printer');
-    const { state, temperature } = data;
-
-    return {
-      state: state.text,
-      bedTemp: temperature?.bed?.actual,
-      bedTempTarget: temperature?.bed?.target,
-      printerTemp: temperature?.tool0?.actual,
-      printerTempTarget: temperature?.tool0?.target,
-    };
-  } catch (e) {}
-};
-
-const fetchJobState = async (): Promise<JobState> => {
-  try {
-    const { data } = await api.get('/job');
-    const { job, progress } = data;
-    const { file, filament } = job;
-
-    return {
-      durationCurrent: progress?.printTime,
-      durationRemaining: progress?.printTimeLeft,
-      durationPercent: progress?.completion,
-      fileName: file,
-      filamentLength: filament?.length,
-      filamentVolume: filament?.volume,
-    };
-  } catch (e) {}
-};
-
-const fetchLocalFile = async (filename): Promise<FileDetail> => {
-  const { data } = await api.get(`/files/local/${filename}`);
-  const { name, size, refs, gcodeAnalysis, print } = data;
-  const { estimatedPrintTime } = gcodeAnalysis;
-
-  return {
-    durationEstimate: estimatedPrintTime,
-    fileName: name,
-    fileSize: size,
-    fileUrl: refs.download,
-    stats: {
-      countFailure: print?.failure,
-      countSuccess: print?.success,
-      lastPrint: print?.last?.date,
-      lastPrintSucceeded: print?.last?.success,
-    },
-  };
-};
-
-const fetchLocalFiles = async (): Promise<Array<File>> => {
-  const { data } = await api.get('/files');
-  const { files } = data;
-
-  return files.map(file => {
-    const { name, refs, size, gcodeAnalysis } = file;
-    const { estimatedPrintTime } = gcodeAnalysis;
-    return {
-      fileName: name,
-      fileSize: size,
-      fileUrl: refs?.download,
-      durationEstimate: estimatedPrintTime,
-    };
-  });
-};
-
-const printFile = async (fileString): Promise<Event> => {
-  const fileName = `${fileString}.gcode`;
-  const filePath = `/files/local/${fileName}`;
-
-  const files = await fetchLocalFiles();
-  if (!files.find(f => f.fileName === fileName)) {
-    return { success: false, error: 'Local File Not Found' };
-  }
-
-  const result = await api.post(filePath, {
-    command: 'select',
-    print: true,
-  });
-
-  if (result.status !== 204) {
-    return { success: false, error: 'Failed to Print' };
-  }
-
-  return { success: true, file: filePath };
-};
-
 router.get('/', async (_, res) => {
   try {
-    const printerState = await fetchPrinterState();
-    const jobState = await fetchJobState();
-    const files = await fetchLocalFiles();
+    const printerState = await octoApi.fetchPrinterState();
+    const jobState = await octoApi.fetchJobState();
+    const files = await octoApi.fetchLocalFiles();
 
     return res.json({ jobState, printerState, localFiles: files });
   } catch (e) {
@@ -152,7 +18,7 @@ router.get('/', async (_, res) => {
 
 router.get('/files', async (_, res) => {
   try {
-    const files = await fetchLocalFiles();
+    const files = await octoApi.fetchLocalFiles();
     return res.json({ files });
   } catch (e) {
     console.log(e);
@@ -165,7 +31,7 @@ router.get('/files/:filename', async (req, res) => {
     const { filename } = req.params;
     if (!filename) return res.status(422).send('Invalid Filename');
 
-    const file = await fetchLocalFile(filename);
+    const file = await octoApi.fetchLocalFile(filename);
     res.status(200).json({ file });
   } catch (e) {
     console.log(e);
@@ -178,7 +44,7 @@ router.post('/print_file', async (req, res) => {
     const { filename } = req.body;
     if (!filename) return res.status(422).send('Invalid Filename');
 
-    const { error, success, file } = await printFile(filename);
+    const { error, success, file } = await octoApi.printFile(filename);
     if (!success) return res.status(400).send(error);
 
     res.status(200).json({ file });
