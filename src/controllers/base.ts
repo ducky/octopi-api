@@ -11,8 +11,8 @@ router.get('/', async (_, res) => {
 
     return res.json({ jobState, printerState, localFiles: files });
   } catch (e) {
-    console.log(e);
-    return res.sendStatus(404);
+    console.error(e);
+    return res.status(500).send(e.message);
   }
 });
 
@@ -21,8 +21,8 @@ router.get('/files', async (_, res) => {
     const files = await octoApi.fetchLocalFiles();
     return res.json({ files });
   } catch (e) {
-    console.log(e);
-    return res.sendStatus(404);
+    console.error(e);
+    return res.status(500).send(e.message);
   }
 });
 
@@ -34,8 +34,8 @@ router.get('/files/:filename', async (req, res) => {
     const file = await octoApi.fetchLocalFile(filename);
     res.status(200).json({ file });
   } catch (e) {
-    console.log(e);
-    return res.sendStatus(404);
+    console.error(e);
+    return res.status(500).send(e.message);
   }
 });
 
@@ -44,13 +44,11 @@ router.post('/print_file', async (req, res) => {
     const { filename } = req.body;
     if (!filename) return res.status(422).send('Invalid Filename');
 
-    const { error, success, file } = await octoApi.printFile(filename);
-    if (!success) return res.status(400).send(error);
-
+    const { file } = await octoApi.printFile(filename);
     res.status(200).json({ file });
   } catch (e) {
-    console.log(e);
-    return res.sendStatus(404);
+    console.error(e);
+    return res.status(500).send(e.message);
   }
 });
 

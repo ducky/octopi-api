@@ -128,7 +128,7 @@ export const printFile = async (fileString): Promise<Event> => {
 
   const files = await fetchLocalFiles();
   if (!files.find(f => f.fileName === fileName)) {
-    return { success: false, error: 'Local File Not Found' };
+    throw Error('Local File Not Found');
   }
 
   const result = await api.post(filePath, {
@@ -137,7 +137,7 @@ export const printFile = async (fileString): Promise<Event> => {
   });
 
   if (result.status !== 204) {
-    return { success: false, error: 'Failed to Print' };
+    throw Error('Failed to print');
   }
 
   return { success: true, file: filePath };
