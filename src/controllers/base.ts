@@ -33,7 +33,7 @@ type FileStat = {
   countSuccess: number;
   lastPrint: string;
   lastPrintSucceeded: boolean;
-}
+};
 
 type FileDetail = {
   fileName: string;
@@ -56,10 +56,10 @@ const fetchPrinterState = async (): Promise<PrinterState> => {
 
     return {
       state: state.text,
-      bedTemp: temperature.bed.actual,
-      bedTempTarget: temperature.bed.target,
-      printerTemp: temperature.tool0.actual,
-      printerTempTarget: temperature.tool0.target,
+      bedTemp: temperature?.bed?.actual,
+      bedTempTarget: temperature?.bed?.target,
+      printerTemp: temperature?.tool0?.actual,
+      printerTempTarget: temperature?.tool0?.target,
     };
   } catch (e) {}
 };
@@ -71,12 +71,12 @@ const fetchJobState = async (): Promise<JobState> => {
     const { file, filament } = job;
 
     return {
-      durationCurrent: progress.printTime,
-      durationRemaining: progress.printTimeLeft,
-      durationPercent: progress.completion,
+      durationCurrent: progress?.printTime,
+      durationRemaining: progress?.printTimeLeft,
+      durationPercent: progress?.completion,
       fileName: file,
-      filamentLength: filament.length,
-      filamentVolume: filament.volume,
+      filamentLength: filament?.length,
+      filamentVolume: filament?.volume,
     };
   } catch (e) {}
 };
@@ -92,8 +92,8 @@ const fetchLocalFile = async (filename): Promise<FileDetail> => {
     fileSize: size,
     fileUrl: refs.download,
     stats: {
-      countFailure: print.failure,
-      countSuccess: print.success,
+      countFailure: print?.failure,
+      countSuccess: print?.success,
       lastPrint: print?.last?.date,
       lastPrintSucceeded: print?.last?.success,
     },
@@ -110,7 +110,7 @@ const fetchLocalFiles = async (): Promise<Array<File>> => {
     return {
       fileName: name,
       fileSize: size,
-      fileUrl: refs.download,
+      fileUrl: refs?.download,
       durationEstimate: estimatedPrintTime,
     };
   });
@@ -186,6 +186,6 @@ router.post('/print_file', async (req, res) => {
     console.log(e);
     return res.sendStatus(404);
   }
-})
+});
 
 export default router;
