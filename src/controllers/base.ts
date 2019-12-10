@@ -1,4 +1,4 @@
-import * as express from 'express';
+import express from 'express';
 import * as octoApi from '../lib/octoApi';
 
 const router = express.Router();
@@ -10,6 +10,16 @@ router.get('/', async (_, res) => {
     const files = await octoApi.fetchLocalFiles();
 
     return res.json({ jobState, printerState, localFiles: files });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send(e.message);
+  }
+});
+
+router.get('/stats', async (_, res) => {
+  try {
+    const jobState = await octoApi.fetchJobState();
+    return res.json(jobState);
   } catch (e) {
     console.error(e);
     return res.status(500).send(e.message);
